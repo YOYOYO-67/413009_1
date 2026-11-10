@@ -1,0 +1,1023 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>寶貝夢 - 手機抽卡圖鑑遊戲</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 圖示庫 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: radial-gradient(circle at top, #1e1b4b 0%, #0f172a 60%, #020617 100%);
+            touch-action: manipulation;
+        }
+
+        /* 寶可夢風格精靈球紋理與炫光邊框 */
+        .poke-tab-bg {
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(12px);
+        }
+
+        .rainbow-text-bg {
+            background: linear-gradient(135deg, #ff007f, #7f00ff, #00e5ff, #ffea00);
+            background-size: 300% 300%;
+            animation: rainbowAnim 4s ease infinite;
+        }
+
+        @keyframes rainbowAnim {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .rarity-sar-card {
+            background: linear-gradient(145deg, rgba(255,0,128,0.2), rgba(127,0,255,0.2), rgba(0,229,255,0.2));
+            border: 2px solid #ffea00;
+            box-shadow: 0 0 15px rgba(255, 234, 0, 0.5);
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen flex justify-center items-center p-0 sm:p-4">
+
+    <!-- 主遊戲容器 (模擬手機螢幕) -->
+    <div class="w-full max-w-md bg-slate-900/90 sm:rounded-3xl shadow-2xl border border-red-500/30 overflow-hidden flex flex-col h-screen sm:h-[840px] relative">
+        
+        <!-- 頂部資訊列 (金幣/鑽石/體力) -->
+        <div class="bg-gradient-to-r from-red-600 via-rose-600 to-red-700 p-3 flex justify-between items-center shadow-md relative z-20 border-b border-yellow-400/40">
+            <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 bg-yellow-400 rounded-full flex items-center justify-center text-slate-950 font-black text-xs shadow-inner">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+                <span id="energyCount" class="font-extrabold text-xs text-yellow-300">100</span>
+            </div>
+
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-1.5 bg-slate-950/40 px-2.5 py-1 rounded-full border border-yellow-400/30">
+                    <i class="fa-solid fa-coins text-yellow-400 text-xs"></i>
+                    <span id="coinCount" class="font-black text-xs text-yellow-300">500</span>
+                </div>
+                <div class="flex items-center space-x-1.5 bg-slate-950/40 px-2.5 py-1 rounded-full border border-cyan-400/30">
+                    <i class="fa-solid fa-gem text-cyan-400 text-xs"></i>
+                    <span id="gemCount" class="font-black text-xs text-cyan-300">50</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 中間可滾動主內容區 -->
+        <div class="flex-1 overflow-y-auto relative">
+            
+            <!-- 首頁 TAB -->
+            <div id="tab-home" class="tab-content p-4 space-y-4 pb-20">
+                <!-- 夥伴展示卡片 -->
+                <div class="bg-slate-950/70 border border-slate-800 rounded-3xl p-5 flex flex-col items-center justify-center text-center relative overflow-hidden shadow-xl">
+                    <div class="text-xs text-gray-400 font-bold mb-2">【當前跟隨夥伴】</div>
+                    <div id="partnerDisplay" class="flex flex-col items-center justify-center">
+                        <!-- 動態渲染夥伴 -->
+                    </div>
+                </div>
+
+                <!-- 冒險探索與全圖鑑進度 -->
+                <div class="bg-slate-950/70 border border-slate-800 rounded-3xl p-4 space-y-3 shadow-lg">
+                    <div class="flex justify-between items-center text-xs font-bold">
+                        <span class="text-gray-300"><i class="fa-solid fa-book-open text-yellow-400 mr-1.5"></i>全國圖鑑解鎖進度</span>
+                        <span id="dexCountText" class="text-yellow-400 font-extrabold">1 / 1025</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-3 overflow-hidden p-0.5 border border-slate-700">
+                        <div id="dexBar" class="bg-gradient-to-r from-yellow-400 to-amber-500 h-full rounded-full transition-all duration-500" style="width: 1%;"></div>
+                    </div>
+                </div>
+
+                <!-- 快捷鍵按鈕區 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <button onclick="switchTab('adventure')" class="bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black py-4 px-3 rounded-2xl shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition">
+                        <i class="fa-solid fa-compass text-lg"></i>
+                        <span>野外冒險探索</span>
+                    </button>
+                    <button onclick="switchTab('gacha')" class="bg-gradient-to-r from-amber-500 to-yellow-600 hover:from-amber-400 hover:to-yellow-500 text-slate-950 font-black py-4 px-3 rounded-2xl shadow-lg flex items-center justify-center space-x-2 active:scale-95 transition">
+                        <i class="fa-solid fa-dice text-lg"></i>
+                        <span>前往卡池抽卡</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 冒險 TAB -->
+            <div id="tab-adventure" class="tab-content hidden p-4 space-y-4 pb-20">
+                <div class="bg-slate-950/80 border border-emerald-500/40 rounded-3xl p-4 text-center space-y-3">
+                    <h2 class="text-base font-black text-emerald-400 flex items-center justify-center space-x-2">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                        <span>真新鎮周邊 - 野外森林</span>
+                    </h2>
+                    <p class="text-xs text-gray-400">消耗 10 點體力進行一次野外搜尋，有機會獲得金幣、鑽石與野生寶可夢！</p>
+                    <button onclick="doAdventure()" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-black py-3 rounded-xl shadow-lg active:scale-95 transition">
+                        開始探索 (-10 體力)
+                    </button>
+                </div>
+
+                <div class="bg-slate-950/70 border border-slate-800 rounded-3xl p-4 space-y-2">
+                    <div class="text-xs font-bold text-gray-400 flex items-center space-x-1">
+                        <i class="fa-solid fa-scroll text-yellow-400"></i>
+                        <span>冒險動態日誌</span>
+                    </div>
+                    <div id="advLog" class="space-y-2 max-h-80 overflow-y-auto pt-1">
+                        <div class="text-xs text-gray-500 text-center py-4">暫無探索紀錄，點擊上方按鈕開始冒險吧！</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 轉蛋 TAB -->
+            <div id="tab-gacha" class="tab-content hidden p-4 space-y-5 pb-20">
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-indigo-900 via-purple-900 to-slate-950 p-4 border border-purple-500/40 shadow-xl text-center">
+                    <div class="absolute -top-10 -right-10 w-28 h-28 bg-purple-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="absolute -bottom-10 -left-10 w-28 h-28 bg-amber-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                    <span class="bg-purple-500/30 text-purple-200 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider border border-purple-400/40 inline-block mb-1">
+                        <i class="fa-solid fa-sparkles text-yellow-300 mr-1"></i> Card Summon Center
+                    </span>
+                    <h2 class="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400 drop-shadow">寶可夢經典特繪卡池</h2>
+                    <p class="text-[11px] text-gray-300 mt-0.5">點擊下方卡池即可召喚強力寶可夢！</p>
+                </div>
+
+                <!-- 1. 友情點數池 -->
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-emerald-950/40 to-slate-900 border-2 border-emerald-500/50 p-4 shadow-xl space-y-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="bg-emerald-500/20 text-emerald-300 text-[10px] font-black px-2.5 py-0.5 rounded-md border border-emerald-500/30">
+                                🍀 基礎卡池
+                            </span>
+                            <h3 class="text-base font-black text-emerald-300 mt-1 flex items-center gap-1.5">友情夥伴召喚池</h3>
+                            <p class="text-[10px] text-gray-400">適合新手積攢 C ~ R 級基礎寶可夢卡牌</p>
+                        </div>
+                        <div class="w-12 h-12 bg-emerald-500/10 rounded-2xl border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-2xl shadow-inner">
+                            <i class="fa-solid fa-leaf"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2.5 pt-1">
+                        <button onclick="drawGacha('friend', 1)" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-emerald-300 font-black py-3 px-2 rounded-2xl text-xs flex flex-col items-center justify-center border border-emerald-500/30 shadow-md transition">
+                            <span class="text-[10px] text-gray-400 mb-0.5">單次召喚</span>
+                            <span class="flex items-center gap-1 text-white"><i class="fa-solid fa-coins text-yellow-400"></i> 30 金幣</span>
+                        </button>
+                        <button onclick="drawGacha('friend', 10)" class="bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 active:scale-95 text-white font-black py-3 px-2 rounded-2xl text-xs flex flex-col items-center justify-center shadow-lg border border-emerald-300/40 transition">
+                            <span class="text-[10px] text-emerald-100 mb-0.5">10 連抽 (9折特惠)</span>
+                            <span class="flex items-center gap-1 text-yellow-300"><i class="fa-solid fa-coins"></i> 270 金幣</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. 屬性主題池 -->
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-cyan-950/40 to-slate-900 border-2 border-cyan-500/60 p-4 shadow-xl space-y-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="bg-cyan-500/20 text-cyan-300 text-[10px] font-black px-2.5 py-0.5 rounded-md border border-cyan-500/40">
+                                ⚡ AR / SR UP
+                            </span>
+                            <h3 class="text-base font-black text-cyan-300 mt-1 flex items-center gap-1.5">屬性精英熱門池</h3>
+                            <p class="text-[10px] text-gray-400">更高機率獲得熱門進化型態與高階卡牌</p>
+                        </div>
+                        <div class="w-12 h-12 bg-cyan-500/10 rounded-2xl border border-cyan-500/40 flex items-center justify-center text-cyan-300 text-2xl shadow-inner">
+                            <i class="fa-solid fa-bolt-lightning"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2.5 pt-1">
+                        <button onclick="drawGacha('element', 1)" class="bg-slate-800 hover:bg-slate-700 active:scale-95 text-cyan-300 font-black py-3 px-2 rounded-2xl text-xs flex flex-col items-center justify-center border border-cyan-500/30 shadow-md transition">
+                            <span class="text-[10px] text-gray-400 mb-0.5">單次召喚</span>
+                            <span class="flex items-center gap-1 text-white"><i class="fa-solid fa-coins text-yellow-400"></i> 300 金幣</span>
+                        </button>
+                        <button onclick="drawGacha('element', 10)" class="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 active:scale-95 text-white font-black py-3 px-2 rounded-2xl text-xs flex flex-col items-center justify-center shadow-lg border border-cyan-300/40 transition">
+                            <span class="text-[10px] text-cyan-100 mb-0.5">10 連抽 (9折特惠)</span>
+                            <span class="flex items-center gap-1 text-yellow-300"><i class="fa-solid fa-coins"></i> 2700 金幣</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. 傳說神獸池 -->
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-amber-950/60 to-purple-950/60 border-2 border-yellow-400 shadow-2xl p-4 space-y-3">
+                    <div class="flex justify-between items-start">
+                        <div>
+                            <span class="bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950 text-[10px] font-black px-2.5 py-0.5 rounded-md shadow-md animate-pulse">
+                                👑 SAR / UR 100% 傳說限定
+                            </span>
+                            <h3 class="text-base font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400 mt-1 flex items-center gap-1.5">傳說神獸降臨大師池</h3>
+                            <p class="text-[10px] text-amber-200/80">保證獲得 SAR 特繪彩卡與 UR 黃金神獸卡！</p>
+                        </div>
+                        <div class="w-12 h-12 bg-amber-400/20 rounded-2xl border border-yellow-400/50 flex items-center justify-center text-yellow-300 text-2xl shadow-lg">
+                            <i class="fa-solid fa-crown"></i>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-2.5 pt-1">
+                        <button onclick="drawGacha('legend', 1)" class="bg-slate-900 hover:bg-slate-800 active:scale-95 text-yellow-300 font-black py-3 px-2 rounded-2xl text-xs flex flex-col items-center justify-center border border-yellow-400/50 shadow-md transition">
+                            <span class="text-[10px] text-gray-400 mb-0.5">1 抽神獸</span>
+                            <span class="flex items-center gap-1 text-cyan-300"><i class="fa-solid fa-gem"></i> 50 鑽石</span>
+                        </button>
+                        <button onclick="drawGacha('legend', 10)" class="bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-500 hover:from-yellow-300 hover:to-amber-400 active:scale-95 text-slate-950 font-black py-3 px-2 rounded-2xl text-xs flex flex-col items-center justify-center shadow-xl border border-yellow-200 transition">
+                            <span class="text-[10px] text-slate-900/80 mb-0.5">10 連抽 (450鑽)</span>
+                            <span class="flex items-center gap-1 text-slate-950 font-black"><i class="fa-solid fa-gem text-slate-950"></i> 450 鑽石</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 背包 TAB -->
+            <div id="tab-bag" class="tab-content hidden p-4 space-y-4 pb-20">
+                <div class="flex justify-between items-center text-xs font-bold text-gray-300">
+                    <span>已收藏的寶可夢卡牌</span>
+                </div>
+                <div id="bagGrid" class="grid grid-cols-2 gap-3">
+                    <!-- 動態渲染背包列表 -->
+                </div>
+            </div>
+
+            <!-- 圖鑑 TAB (分頁模式) -->
+            <div id="tab-dex" class="tab-content hidden p-4 space-y-3 pb-20">
+                <!-- 搜尋與篩選 -->
+                <div class="flex space-x-2">
+                    <input type="text" id="searchInput" oninput="resetAndRenderDex()" placeholder="搜尋名稱或編號..." class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-yellow-400">
+                    <select id="rarityFilter" onchange="resetAndRenderDex()" class="bg-slate-950 border border-slate-700 rounded-xl px-2 py-2 text-xs text-yellow-400 font-bold focus:outline-none">
+                        <option value="ALL">全部稀有度</option>
+                        <option value="SAR">SAR 特繪</option>
+                        <option value="UR">UR 金卡</option>
+                        <option value="AR">AR 特繪</option>
+                        <option value="SR">SR 超級</option>
+                        <option value="RR">RR 雙罕</option>
+                        <option value="R">R 罕貴</option>
+                        <option value="C">C 普通</option>
+                    </select>
+                </div>
+
+                <!-- 頂部頁次導覽 -->
+                <div class="flex justify-between items-center bg-slate-950/70 border border-slate-800 rounded-xl p-2 px-3 text-xs">
+                    <button id="prevPageBtn" onclick="changePage(-1)" class="bg-slate-800 hover:bg-slate-700 text-yellow-400 font-bold px-3 py-1 rounded-lg text-xs disabled:opacity-30 disabled:pointer-events-none">
+                        <i class="fa-solid fa-chevron-left"></i> 上頁
+                    </button>
+                    <span id="pageIndicator" class="font-bold text-gray-300 text-[11px]">頁次 1 / 57</span>
+                    <button id="nextPageBtn" onclick="changePage(1)" class="bg-slate-800 hover:bg-slate-700 text-yellow-400 font-bold px-3 py-1 rounded-lg text-xs disabled:opacity-30 disabled:pointer-events-none">
+                        下頁 <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+
+                <!-- 18 隻格子圖鑑區 -->
+                <div id="dexGrid" class="grid grid-cols-3 gap-2.5">
+                    <!-- 動態渲染圖鑑 -->
+                </div>
+
+                <!-- 底部頁次導覽 -->
+                <div class="flex justify-between items-center bg-slate-950/70 border border-slate-800 rounded-xl p-2 px-3 text-xs mt-2">
+                    <button id="prevPageBtn2" onclick="changePage(-1)" class="bg-slate-800 hover:bg-slate-700 text-yellow-400 font-bold px-3 py-1 rounded-lg text-xs disabled:opacity-30 disabled:pointer-events-none">
+                        <i class="fa-solid fa-chevron-left"></i> 上頁
+                    </button>
+                    <span id="pageIndicator2" class="font-bold text-gray-300 text-[11px]">頁次 1 / 57</span>
+                    <button id="nextPageBtn2" onclick="changePage(1)" class="bg-slate-800 hover:bg-slate-700 text-yellow-400 font-bold px-3 py-1 rounded-lg text-xs disabled:opacity-30 disabled:pointer-events-none">
+                        下頁 <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 商城 TAB -->
+            <div id="tab-shop" class="tab-content hidden p-4 space-y-4 pb-20">
+                <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-purple-950 via-slate-950 to-cyan-950 p-4 border border-cyan-500/50 shadow-2xl text-center">
+                    <div class="absolute -top-10 -right-10 w-28 h-28 bg-cyan-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                    <div class="absolute -bottom-10 -left-10 w-28 h-28 bg-purple-500/20 rounded-full blur-2xl pointer-events-none"></div>
+                    <span class="bg-cyan-500/20 text-cyan-300 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest border border-cyan-400/40 inline-block mb-1 animate-pulse">
+                        <i class="fa-solid fa-bolt text-yellow-300 mr-1"></i> Cyber Energy Depot
+                    </span>
+                    <h2 class="text-lg font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-yellow-300 to-purple-400 drop-shadow-lg">賽博全息補給站</h2>
+                    <p class="text-[11px] text-gray-300 mt-0.5">即時解鎖無限資源與稀有鑽石</p>
+                </div>
+
+                <!-- 金幣兌換專區 -->
+                <div class="space-y-2.5">
+                    <div class="flex items-center justify-between px-1">
+                        <div class="text-xs font-black text-yellow-400 flex items-center space-x-1.5 uppercase tracking-wider">
+                            <i class="fa-solid fa-coins text-yellow-300"></i>
+                            <span>金幣擴充庫 (Coins Exchange)</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-2.5">
+                        <div onclick="buyShopItem('coins', 10, 1000)" class="bg-slate-950/90 border-2 border-yellow-500/40 hover:border-yellow-400 p-3 rounded-2xl flex flex-col items-center text-center cursor-pointer shadow-lg active:scale-95 transition-all">
+                            <div class="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center text-yellow-400 text-2xl mb-1.5">
+                                <i class="fa-solid fa-coins"></i>
+                            </div>
+                            <div class="text-xs font-black text-white">1,000</div>
+                            <div class="text-[9px] text-gray-400 font-bold mb-2">金幣包</div>
+                            <div class="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 text-[10px] font-black py-1 rounded-xl shadow flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-gem text-slate-950 text-[9px]"></i> 10 鑽石
+                            </div>
+                        </div>
+
+                        <div onclick="buyShopItem('coins', 25, 3000)" class="relative bg-gradient-to-b from-slate-950 to-amber-950/40 border-2 border-yellow-400 p-3 rounded-2xl flex flex-col items-center text-center cursor-pointer shadow-xl active:scale-95 transition-all">
+                            <span class="absolute -top-2 px-2 py-0.2 bg-gradient-to-r from-rose-500 to-red-600 text-white text-[8px] font-black rounded-full shadow">超值 8 折</span>
+                            <div class="w-10 h-10 bg-yellow-400/20 rounded-xl flex items-center justify-center text-yellow-300 text-2xl mb-1.5">
+                                <i class="fa-solid fa-sack-dollar"></i>
+                            </div>
+                            <div class="text-xs font-black text-white">3,000</div>
+                            <div class="text-[9px] text-amber-300/80 font-bold mb-2">大袋金幣</div>
+                            <div class="w-full bg-gradient-to-r from-yellow-400 to-amber-500 text-slate-950 text-[10px] font-black py-1 rounded-xl shadow flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-gem text-slate-950 text-[9px]"></i> 25 鑽石
+                            </div>
+                        </div>
+
+                        <div onclick="buyShopItem('coins', 50, 7000)" class="bg-slate-950/90 border-2 border-yellow-500/40 hover:border-yellow-400 p-3 rounded-2xl flex flex-col items-center text-center cursor-pointer shadow-lg active:scale-95 transition-all">
+                            <div class="w-10 h-10 bg-yellow-500/10 rounded-xl flex items-center justify-center text-yellow-400 text-2xl mb-1.5">
+                                <i class="fa-solid fa-vault"></i>
+                            </div>
+                            <div class="text-xs font-black text-white">7,000</div>
+                            <div class="text-[9px] text-gray-400 font-bold mb-2">金幣寶庫</div>
+                            <div class="w-full bg-gradient-to-r from-yellow-500 to-amber-600 text-slate-950 text-[10px] font-black py-1 rounded-xl shadow flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-gem text-slate-950 text-[9px]"></i> 50 鑽石
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 鑽石儲值專區 -->
+                <div class="space-y-2.5 pt-2">
+                    <div class="flex items-center justify-between px-1">
+                        <div class="text-xs font-black text-cyan-400 flex items-center space-x-1.5 uppercase tracking-wider">
+                            <i class="fa-solid fa-gem text-cyan-300"></i>
+                            <span>全息鑽石能量中心 (Gems)</span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div onclick="buyShopItem('gems', 0, 100)" class="bg-gradient-to-br from-slate-950 via-cyan-950/30 to-slate-900 border-2 border-cyan-500/50 p-4 rounded-3xl flex flex-col items-center text-center cursor-pointer shadow-xl active:scale-95 transition-all">
+                            <div class="w-12 h-12 bg-cyan-500/20 rounded-2xl flex items-center justify-center text-cyan-300 text-2xl mb-2">
+                                <i class="fa-solid fa-gem"></i>
+                            </div>
+                            <div class="text-sm font-black text-white">100 鑽石</div>
+                            <div class="text-[10px] text-cyan-200/70 mb-3">新手試煉補給</div>
+                            <div class="w-full bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-black py-2 rounded-xl text-xs flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-gift"></i> 免費領取
+                            </div>
+                        </div>
+
+                        <div onclick="buyShopItem('gems', 0, 500)" class="relative bg-gradient-to-br from-slate-950 via-purple-950/40 to-slate-900 border-2 border-purple-500/60 p-4 rounded-3xl flex flex-col items-center text-center cursor-pointer shadow-2xl active:scale-95 transition-all">
+                            <span class="absolute -top-2 px-2.5 py-0.2 bg-gradient-to-r from-purple-500 to-indigo-600 text-white text-[8px] font-black rounded-full shadow">極致尊榮</span>
+                            <div class="w-12 h-12 bg-purple-500/20 rounded-2xl flex items-center justify-center text-purple-300 text-2xl mb-2">
+                                <i class="fa-solid fa-crown"></i>
+                            </div>
+                            <div class="text-sm font-black text-white">500 鑽石</div>
+                            <div class="text-[10px] text-purple-200/70 mb-3">大師極限補給包</div>
+                            <div class="w-full bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-black py-2 rounded-xl text-xs flex items-center justify-center gap-1">
+                                <i class="fa-solid fa-gift"></i> 免費領取
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 底部 Tab 導覽列 -->
+        <div class="poke-tab-bg border-t border-red-500/30 flex justify-around p-2.5 relative z-20">
+            <button onclick="switchTab('home')" class="nav-btn text-yellow-400 flex flex-col items-center space-y-0.5 text-xs font-bold" data-tab="home">
+                <i class="fa-solid fa-house text-base"></i>
+                <span class="text-[10px]">首頁</span>
+            </button>
+            <button onclick="switchTab('adventure')" class="nav-btn text-gray-400 hover:text-white flex flex-col items-center space-y-0.5 text-xs font-bold" data-tab="adventure">
+                <i class="fa-solid fa-compass text-base"></i>
+                <span class="text-[10px]">冒險</span>
+            </button>
+            <button onclick="switchTab('gacha')" class="nav-btn text-gray-400 hover:text-white flex flex-col items-center space-y-0.5 text-xs font-bold" data-tab="gacha">
+                <i class="fa-solid fa-dice text-base"></i>
+                <span class="text-[10px]">轉蛋</span>
+            </button>
+            <button onclick="switchTab('bag')" class="nav-btn text-gray-400 hover:text-white flex flex-col items-center space-y-0.5 text-xs font-bold" data-tab="bag">
+                <i class="fa-solid fa-briefcase text-base"></i>
+                <span class="text-[10px]">背包</span>
+            </button>
+            <button onclick="switchTab('dex')" class="nav-btn text-gray-400 hover:text-white flex flex-col items-center space-y-0.5 text-xs font-bold" data-tab="dex">
+                <i class="fa-solid fa-book text-base"></i>
+                <span class="text-[10px]">圖鑑</span>
+            </button>
+            <button onclick="switchTab('shop')" class="nav-btn text-gray-400 hover:text-white flex flex-col items-center space-y-0.5 text-xs font-bold" data-tab="shop">
+                <i class="fa-solid fa-store text-base"></i>
+                <span class="text-[10px]">商城</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 轉蛋抽卡結果 Modal -->
+    <div id="gachaModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-slate-900 border border-yellow-400/50 rounded-3xl p-5 w-full max-w-sm text-center relative max-h-[85vh] overflow-y-auto">
+            <div id="gachaAnimation" class="py-12 space-y-4">
+                <div class="w-16 h-16 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                <div class="text-xs font-bold text-yellow-400 animate-pulse">正在開啟寶可夢卡包...</div>
+            </div>
+
+            <div id="singleResult" class="hidden space-y-3">
+                <span id="resultRarity" class="text-xs px-2.5 py-0.5 rounded font-black">SAR</span>
+                <div class="w-32 h-32 mx-auto flex items-center justify-center bg-slate-950/80 rounded-2xl p-2 border border-slate-800">
+                    <img id="resultImage" class="max-w-full max-h-full object-contain">
+                </div>
+                <div id="resultName" class="text-base font-black text-white">妙蛙種子</div>
+                <div id="resultPower" class="text-xs font-bold text-emerald-400">CP 300</div>
+                <div id="resultDesc" class="text-[11px] text-gray-400">描述資訊...</div>
+                <button onclick="closeModal('gachaModal')" class="w-full bg-yellow-400 text-slate-950 font-black py-2.5 rounded-xl text-xs mt-2">太棒了！收入囊中</button>
+            </div>
+
+            <div id="multiResult" class="hidden space-y-3">
+                <div class="text-sm font-black text-yellow-400">✨ 10 連抽卡牌總覽</div>
+                <div id="multiCardGrid" class="grid grid-cols-2 gap-2 max-h-96 overflow-y-auto p-1"></div>
+                <button onclick="closeModal('gachaModal')" class="w-full bg-yellow-400 text-slate-950 font-black py-2.5 rounded-xl text-xs mt-2">全部收下</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 寶可夢詳情 Modal -->
+    <div id="detailModal" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-slate-900 border border-slate-700 rounded-3xl p-5 w-full max-w-sm text-center relative space-y-3">
+            <span id="detailRarity" class="text-xs px-2.5 py-0.5 rounded font-black">SAR</span>
+            <div class="w-28 h-28 mx-auto flex items-center justify-center bg-slate-950/80 rounded-2xl p-2 border border-slate-800">
+                <img id="detailImage" class="max-w-full max-h-full object-contain">
+            </div>
+            <div id="detailName" class="text-base font-black text-white">皮卡丘</div>
+            <div class="flex justify-center space-x-3 text-xs font-bold">
+                <span id="detailLevel" class="text-emerald-400">LV.1</span>
+                <span id="detailCP" class="text-yellow-400">CP 500</span>
+            </div>
+            <div id="detailDesc" class="text-[11px] text-gray-400">詳細說明...</div>
+            <div class="grid grid-cols-2 gap-2 pt-2">
+                <button onclick="upgradeCurrentPokemon()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 rounded-xl text-xs">升級 (100金幣)</button>
+                <button onclick="setAsPartner()" class="bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-black py-2 rounded-xl text-xs">設為跟隨夥伴</button>
+            </div>
+            <button onclick="closeModal('detailModal')" class="w-full bg-slate-800 text-gray-300 font-bold py-2 rounded-xl text-xs mt-1">關閉</button>
+        </div>
+    </div>
+
+    <!-- JavaScript 邏輯 -->
+    <script>
+        function getPokemonImageUrl(id) {
+            return `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`;
+        }
+
+        function handleImgError(img, id) {
+            let tryCount = parseInt(img.dataset.tryCount || "0");
+            tryCount++;
+            img.dataset.tryCount = tryCount;
+
+            if (tryCount === 1) {
+                img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${id}.png`;
+            } else if (tryCount === 2) {
+                img.src = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/showdown/${id}.gif`;
+            } else {
+                img.src = "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png";
+                img.onerror = null;
+            }
+        }
+
+        const ELEMENT_TYPES = ['草', '火', '水', '電', '超能力', '格鬥', '毒', '飛行', '岩石', '冰', '龍', '幽靈', '鋼', '妖精', '地面', '蟲', '惡', '一般'];
+
+        // 校正官方特繪與神獸的正確全國圖鑑編號 ID
+        const PTCG_SAR_IDS = new Set([658, 197, 778, 6, 94, 150, 25, 1007, 1008, 1017]);
+        const PTCG_UR_IDS = new Set([151, 384, 380, 381, 249, 250, 382, 383, 493, 483, 484, 487, 643, 644, 716, 717, 791, 792, 888, 889, 1024, 1025, 479, 960, 744, 248]);
+        const PTCG_AR_IDS = new Set([133, 448, 143, 149, 130, 131, 134, 135, 136, 196, 470, 471, 700, 282, 445, 906, 909, 912, 936, 937]);
+        const PTCG_SR_IDS = new Set([3, 9, 154, 157, 160, 254, 257, 260, 389, 392, 395, 497, 500, 503, 652, 655, 724, 727, 730, 812, 815, 818, 908, 911, 914]);
+
+        const RARITY_CONFIG = {
+            "SAR": { label: "SAR 特繪", badgeClass: "rainbow-text-bg text-white font-black shadow-lg border border-yellow-300", borderClass: "rarity-sar-card" },
+            "UR": { label: "UR 金卡", badgeClass: "bg-gradient-to-r from-yellow-300 via-amber-400 to-yellow-600 text-slate-950 font-black shadow-md border border-amber-200", borderClass: "border-2 border-yellow-400 shadow-yellow-500/50 shadow-md" },
+            "AR": { label: "AR 特繪", badgeClass: "bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black shadow-md", borderClass: "border border-teal-400 shadow-teal-500/30" },
+            "SR": { label: "SR 超級", badgeClass: "bg-gradient-to-r from-purple-500 to-indigo-600 text-white font-bold", borderClass: "border border-purple-500/60 shadow-purple-500/20" },
+            "RR": { label: "RR 雙罕", badgeClass: "bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold", borderClass: "border border-cyan-500/50" },
+            "R": { label: "R 罕貴", badgeClass: "bg-blue-600 text-white font-bold", borderClass: "border border-blue-500/40" },
+            "C": { label: "C 普通", badgeClass: "bg-slate-700 text-gray-300 font-bold", borderClass: "border border-slate-800" }
+        };
+
+        let gameState = {
+            coins: 500,
+            gems: 50,
+            energy: 100,
+            selectedPokemonId: 25,
+            collection: {
+                25: { count: 1, level: 1 }
+            }
+        };
+
+        // 💾 遊戲本地存檔與讀檔系統
+        const SAVE_KEY = 'POKEMON_GAME_SAVE_V1';
+
+        function saveGame() {
+            try {
+                localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+            } catch (e) {
+                console.error("存檔失敗:", e);
+            }
+        }
+
+        function loadGame() {
+            try {
+                const savedData = localStorage.getItem(SAVE_KEY);
+                if (savedData) {
+                    const parsed = JSON.parse(savedData);
+                    if (parsed && typeof parsed === 'object') {
+                        gameState = Object.assign({}, gameState, parsed);
+                    }
+                }
+            } catch (e) {
+                console.error("讀檔失敗:", e);
+            }
+        }
+
+        let currentInspectedId = null;
+
+        // 100% 絕對嚴謹對照的官方全國圖鑑 Key-Value Map
+        const OFFICIAL_DEX_MAP = {
+            1: "妙蛙種子", 2: "妙蛙草", 3: "妙蛙花", 4: "小火龍", 5: "火恐龍", 6: "噴火龍", 7: "傑尼龜", 8: "卡咪龜", 9: "水箭龜",
+            10: "綠毛蟲", 11: "鐵甲蛹", 12: "巴大蝶", 13: "獨角蟲", 14: "鐵殼蛹", 15: "大針蜂", 16: "波波", 17: "比比鳥", 18: "大比鳥",
+            19: "小拉達", 20: "拉達", 21: "烈雀", 22: "大嘴雀", 23: "阿柏蛇", 24: "阿柏怪", 25: "皮卡丘", 26: "雷丘", 27: "穿山鼠", 28: "穿山王",
+            29: "尼多蘭", 30: "尼多娜", 31: "尼多后", 32: "尼多朗", 33: "尼多力諾", 34: "尼多王", 35: "皮皮", 36: "皮可西", 37: "六尾", 38: "九尾",
+            39: "胖丁", 40: "胖可丁", 41: "超音蝠", 42: "大嘴蝠", 43: "走路草", 44: "臭臭花", 45: "霸王花", 46: "派拉斯特", 47: "派拉節", 48: "毛球",
+            49: "摩魯蛾", 50: "地鼠", 51: "三地鼠", 52: "喵喵", 53: "貓老大", 54: "可達鴨", 55: "哥達鴨", 56: "猴怪", 57: "火爆猴", 58: "卡蒂狗",
+            59: "風速狗", 60: "蚊香蝌蚪", 61: "蚊香君", 62: "蚊香泳士", 63: "凱西", 64: "勇基拉", 65: "胡地", 66: "腕力", 67: "豪力", 68: "怪力",
+            94: "耿鬼", 129: "鯉魚王", 130: "暴鯉龍", 131: "乘龍", 133: "伊布", 134: "水伊布", 135: "雷伊布", 136: "火伊布", 143: "卡比獸", 149: "快龍",
+            150: "超夢", 151: "夢幻", 152: "菊草葉", 155: "火球鼠", 158: "小鋸鱷", 196: "太陽伊布", 197: "月亮伊布", 248: "班基拉斯", 249: "洛奇亞",
+            250: "鳳王", 251: "雪拉比", 252: "木守宮", 255: "火稚雞", 258: "水躍魚", 282: "沙奈朵", 380: "拉帝亞斯", 381: "拉帝歐斯", 382: "蓋歐卡",
+            383: "固拉多", 384: "烈空坐", 385: "基拉祈", 386: "代歐奇希斯", 387: "草苗龜", 390: "小火焰猴", 393: "波加曼", 445: "烈咬陸鯊", 448: "路卡利歐",
+            470: "葉伊布", 471: "冰伊布", 479: "洛托姆", 483: "帝牙盧卡", 484: "帕路奇亞", 487: "騎拉帝納", 493: "阿爾宙斯", 658: "甲賀忍蛙", 700: "仙子伊布",
+            716: "哲爾尼亞斯", 717: "伊裴爾塔爾", 744: "岩狗狗", 778: "謎擬丘", 791: "索爾迦雷歐", 792: "露奈雅拉", 888: "蒼響", 889: "藏瑪然特", 890: "無極汰那",
+            906: "新葉喵", 909: "呆火鱷", 912: "潤水鴨", 936: "紅蓮鎧騎", 937: "蒼炎刃鬼", 960: "海地鼠", 1000: "賽富豪", 1007: "故勒頓", 1008: "密勒頓",
+            1017: "厄鬼椪", 1024: "太樂巴戈斯", 1025: "桃歹郎"
+        };
+
+        // 絕對準確圖鑑名稱對照
+        function getOfficialName(id) {
+            if (OFFICIAL_DEX_MAP[id]) {
+                return OFFICIAL_DEX_MAP[id];
+            }
+            return `寶可夢 No.${id}`;
+        }
+
+        const POKEMON_DB = [];
+
+        for (let i = 1; i <= 1025; i++) {
+            const imgUrl = getPokemonImageUrl(i);
+            const name = getOfficialName(i);
+            
+            let rarity = "C";
+            if (PTCG_SAR_IDS.has(i)) {
+                rarity = "SAR";
+            } else if (PTCG_UR_IDS.has(i)) {
+                rarity = "UR";
+            } else if (PTCG_AR_IDS.has(i)) {
+                rarity = "AR";
+            } else if (PTCG_SR_IDS.has(i)) {
+                rarity = "SR";
+            } else if (i % 10 === 0) {
+                rarity = "RR";
+            } else if (i % 3 === 0) {
+                rarity = "R";
+            }
+
+            const typeIdx = (i * 7) % ELEMENT_TYPES.length;
+            const baseCp = 120 + (i % 100) * 10;
+
+            POKEMON_DB.push({
+                id: i,
+                name: name,
+                rarity: rarity,
+                type: ELEMENT_TYPES[typeIdx],
+                image: imgUrl,
+                baseCp: baseCp,
+                desc: `圖鑑 No.${i} 官方寶可夢【${name}】，屬性為${ELEMENT_TYPES[typeIdx]}！`
+            });
+        }
+
+        function safeSetText(id, text) {
+            const el = document.getElementById(id);
+            if (el) el.innerText = text;
+        }
+
+        function safeSetStyleWidth(id, widthStr) {
+            const el = document.getElementById(id);
+            if (el) el.style.width = widthStr;
+        }
+
+        function updateUI() {
+            safeSetText('coinCount', gameState.coins);
+            safeSetText('gemCount', gameState.gems);
+            safeSetText('energyCount', gameState.energy);
+
+            const ownedCount = Object.keys(gameState.collection).length;
+            safeSetText('dexCountText', `${ownedCount} / 1025`);
+            
+            const pct = Math.min(100, Math.round((ownedCount / 1025) * 100));
+            safeSetStyleWidth('dexBar', `${pct}%`);
+
+            renderPartner();
+            resetAndRenderDex();
+            renderBag();
+
+            // 每次 UI 更新時自動存檔
+            saveGame();
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            const activeTab = document.getElementById(`tab-${tabId}`);
+            if (activeTab) activeTab.classList.remove('hidden');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('text-yellow-400');
+                btn.classList.add('text-gray-400');
+                if (btn.dataset.tab === tabId) {
+                    btn.classList.remove('text-gray-400');
+                    btn.classList.add('text-yellow-400');
+                }
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed top-12 left-1/2 transform -translate-x-1/2 bg-slate-900/90 border border-yellow-400/50 text-white text-xs px-4 py-2 rounded-full shadow-lg z-50 animate-bounce font-bold';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        function doAdventure() {
+            if (gameState.energy < 10) {
+                showToast("體力不足！需要 10 點體力");
+                return;
+            }
+            gameState.energy -= 10;
+
+            const randCoin = Math.floor(Math.random() * 80) + 20;
+            const randGem = Math.random() < 0.3 ? 5 : 0;
+            const randId = Math.floor(Math.random() * 1025) + 1;
+
+            gameState.coins += randCoin;
+            gameState.gems += randGem;
+
+            if (!gameState.collection[randId]) {
+                gameState.collection[randId] = { count: 1, level: 1 };
+            } else {
+                gameState.collection[randId].count += 1;
+            }
+
+            const p = POKEMON_DB.find(item => item.id === randId);
+            const advLog = document.getElementById('advLog');
+            
+            if (advLog) {
+                advLog.innerHTML = `
+                    <div class="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-1 animate-fade-in">
+                        <div class="text-xs text-yellow-400 font-bold">✨ 野外探索發現！</div>
+                        <div class="text-xs text-gray-300">擊敗野外寶可夢，獲得了 <span class="text-amber-300 font-bold">${randCoin} 金幣</span> ${randGem ? `<span class="text-cyan-300 font-bold">+${randGem} 鑽石</span>` : ''}</div>
+                        <div class="flex items-center space-x-2 pt-1">
+                            <img src="${p.image}" class="w-8 h-8 object-contain" data-try-count="0" onerror="handleImgError(this, ${p.id})">
+                            <span class="text-xs font-bold text-white">捕獲了【${p.name}】(${p.rarity})！</span>
+                        </div>
+                    </div>
+                ` + advLog.innerHTML;
+            }
+
+            updateUI();
+        }
+
+        function drawGacha(poolType, count) {
+            let costCoins = 0;
+            let costGems = 0;
+
+            if (poolType === 'friend') {
+                costCoins = count === 1 ? 30 : 270;
+                if (gameState.coins < costCoins) {
+                    showToast("金幣不足！");
+                    return;
+                }
+                gameState.coins -= costCoins;
+            } else if (poolType === 'element') {
+                costCoins = count === 1 ? 300 : 2700;
+                if (gameState.coins < costCoins) {
+                    showToast("金幣不足！");
+                    return;
+                }
+                gameState.coins -= costCoins;
+            } else if (poolType === 'legend') {
+                costGems = count === 1 ? 50 : 450;
+                if (gameState.gems < costGems) {
+                    showToast("鑽石不足！");
+                    return;
+                }
+                gameState.gems -= costGems;
+            }
+
+            updateUI();
+
+            const modal = document.getElementById('gachaModal');
+            const anim = document.getElementById('gachaAnimation');
+            const singleResult = document.getElementById('singleResult');
+            const multiResult = document.getElementById('multiResult');
+
+            if (modal) modal.classList.remove('hidden');
+            if (anim) anim.classList.remove('hidden');
+            if (singleResult) singleResult.classList.add('hidden');
+            if (multiResult) multiResult.classList.add('hidden');
+
+            const drawn = [];
+            for (let i = 0; i < count; i++) {
+                let pool = POKEMON_DB;
+                if (poolType === 'legend') {
+                    pool = POKEMON_DB.filter(p => p.rarity === 'UR' || p.rarity === 'SAR');
+                    if (pool.length === 0) pool = POKEMON_DB;
+                } else if (poolType === 'element') {
+                    pool = POKEMON_DB.filter(p => p.rarity === 'AR' || p.rarity === 'SR' || p.rarity === 'RR');
+                    if (pool.length === 0) pool = POKEMON_DB;
+                }
+
+                const selected = pool[Math.floor(Math.random() * pool.length)];
+                if (selected) {
+                    drawn.push(selected);
+
+                    if (!gameState.collection[selected.id]) {
+                        gameState.collection[selected.id] = { count: 1, level: 1 };
+                    } else {
+                        gameState.collection[selected.id].count += 1;
+                    }
+                }
+            }
+
+            setTimeout(() => {
+                if (anim) anim.classList.add('hidden');
+
+                if (drawn.length === 1) {
+                    if (singleResult) singleResult.classList.remove('hidden');
+                    if (multiResult) multiResult.classList.add('hidden');
+
+                    const p = drawn[0];
+                    const cfg = RARITY_CONFIG[p.rarity] || RARITY_CONFIG["C"];
+
+                    safeSetText('resultName', p.name);
+                    
+                    const rarityBadge = document.getElementById('resultRarity');
+                    if (rarityBadge) {
+                        rarityBadge.innerText = cfg.label;
+                        rarityBadge.className = `text-xs px-2.5 py-0.5 rounded ${cfg.badgeClass}`;
+                    }
+
+                    const resImg = document.getElementById('resultImage');
+                    if (resImg) {
+                        resImg.dataset.tryCount = "0";
+                        resImg.onerror = () => handleImgError(resImg, p.id);
+                        resImg.src = p.image;
+                    }
+
+                    safeSetText('resultDesc', p.desc);
+                    safeSetText('resultPower', `CP ${p.baseCp}`);
+                } else {
+                    if (singleResult) singleResult.classList.add('hidden');
+                    if (multiResult) multiResult.classList.remove('hidden');
+
+                    const grid = document.getElementById('multiCardGrid');
+                    if (grid) {
+                        grid.innerHTML = '';
+                        drawn.forEach((p) => {
+                            const cfg = RARITY_CONFIG[p.rarity] || RARITY_CONFIG["C"];
+                            const card = document.createElement('div');
+                            card.className = `bg-slate-900 ${cfg.borderClass} rounded-2xl p-2 flex items-center space-x-2 shadow-lg transition transform hover:scale-105`;
+                            card.innerHTML = `
+                                <div class="w-12 h-12 flex-shrink-0 flex items-center justify-center bg-slate-950/60 rounded-xl p-1">
+                                    <img src="${p.image}" class="max-w-full max-h-full object-contain" data-try-count="0" onerror="handleImgError(this, ${p.id})">
+                                </div>
+                                <div class="text-left overflow-hidden">
+                                    <div class="font-bold text-xs text-white truncate">${p.name}</div>
+                                    <span class="text-[9px] px-1.5 py-0.2 rounded inline-block mt-0.5 ${cfg.badgeClass}">${cfg.label}</span>
+                                </div>
+                            `;
+                            grid.appendChild(card);
+                        });
+                    }
+                }
+                updateUI();
+            }, 1000);
+        }
+
+        function renderBag() {
+            const grid = document.getElementById('bagGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const ownedIds = Object.keys(gameState.collection);
+            if (ownedIds.length === 0) {
+                grid.innerHTML = `<div class="col-span-2 text-center py-10 text-gray-500 text-xs">背包空空如也，快去轉蛋吧！</div>`;
+                return;
+            }
+
+            ownedIds.forEach(idStr => {
+                const id = parseInt(idStr);
+                const p = POKEMON_DB.find(item => item.id === id);
+                if (!p) return;
+
+                const owned = gameState.collection[id];
+                const cfg = RARITY_CONFIG[p.rarity] || RARITY_CONFIG["C"];
+
+                const card = document.createElement('div');
+                card.className = `bg-slate-950/80 ${cfg.borderClass} p-3 rounded-2xl flex flex-col items-center text-center cursor-pointer hover:scale-105 transition`;
+                card.onclick = () => openDetailModal(p.id);
+
+                const cp = p.baseCp + (owned.level - 1) * 150;
+
+                card.innerHTML = `
+                    <span class="text-[9px] ${cfg.badgeClass} px-2 py-0.5 rounded mb-1">${cfg.label}</span>
+                    <div class="w-16 h-16 my-1 flex items-center justify-center">
+                        <img src="${p.image}" class="max-w-full max-h-full object-contain" data-try-count="0" onerror="handleImgError(this, ${p.id})">
+                    </div>
+                    <div class="font-bold text-xs text-white truncate w-full">${p.name}</div>
+                    <div class="text-[10px] text-emerald-400 font-bold mt-0.5">LV.${owned.level} (CP ${cp})</div>
+                    <div class="text-[9px] text-gray-400 mt-0.5">擁有數量: x${owned.count}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        let currentDexPage = 1;
+        const DEX_PAGE_SIZE = 18;
+        let filteredDexList = [];
+
+        function resetAndRenderDex() {
+            const searchEl = document.getElementById('searchInput');
+            const filterEl = document.getElementById('rarityFilter');
+            const searchText = searchEl ? searchEl.value.trim().toLowerCase() : '';
+            const rarityFilter = filterEl ? filterEl.value : 'ALL';
+
+            filteredDexList = POKEMON_DB.filter(p => {
+                if (rarityFilter !== 'ALL' && p.rarity !== rarityFilter) return false;
+                if (searchText && !p.name.toLowerCase().includes(searchText) && !p.id.toString().includes(searchText)) return false;
+                return true;
+            });
+
+            currentDexPage = 1;
+            renderDexPage();
+        }
+
+        function changePage(delta) {
+            const totalPages = Math.ceil(filteredDexList.length / DEX_PAGE_SIZE) || 1;
+            const newPage = currentDexPage + delta;
+            
+            if (newPage >= 1 && newPage <= totalPages) {
+                currentDexPage = newPage;
+                renderDexPage();
+            }
+        }
+
+        function renderDexPage() {
+            const grid = document.getElementById('dexGrid');
+            if (!grid) return;
+            grid.innerHTML = '';
+
+            const totalPages = Math.ceil(filteredDexList.length / DEX_PAGE_SIZE) || 1;
+            const startIndex = (currentDexPage - 1) * DEX_PAGE_SIZE;
+            const pageBatch = filteredDexList.slice(startIndex, startIndex + DEX_PAGE_SIZE);
+
+            const pageText = `頁次 ${currentDexPage} / ${totalPages} (共 ${filteredDexList.length} 隻)`;
+            safeSetText('pageIndicator', pageText);
+            safeSetText('pageIndicator2', pageText);
+
+            const isFirst = currentDexPage <= 1;
+            const isLast = currentDexPage >= totalPages;
+
+            const prevBtn1 = document.getElementById('prevPageBtn');
+            const prevBtn2 = document.getElementById('prevPageBtn2');
+            const nextBtn1 = document.getElementById('nextPageBtn');
+            const nextBtn2 = document.getElementById('nextPageBtn2');
+
+            if (prevBtn1) prevBtn1.disabled = isFirst;
+            if (prevBtn2) prevBtn2.disabled = isFirst;
+            if (nextBtn1) nextBtn1.disabled = isLast;
+            if (nextBtn2) nextBtn2.disabled = isLast;
+
+            if (pageBatch.length === 0) {
+                grid.innerHTML = `<div class="col-span-3 text-center py-10 text-gray-500 text-xs">查無符合條件的寶可夢！</div>`;
+                return;
+            }
+
+            pageBatch.forEach(p => {
+                const owned = gameState.collection[p.id];
+                const isOwned = !!owned;
+                const cfg = RARITY_CONFIG[p.rarity] || RARITY_CONFIG["C"];
+
+                const card = document.createElement('div');
+                card.className = `bg-slate-900 ${isOwned ? cfg.borderClass : 'border-slate-800 opacity-40'} rounded-2xl p-2 flex flex-col items-center text-center relative cursor-pointer hover:scale-105 transition`;
+                card.onclick = () => {
+                    if (isOwned) openDetailModal(p.id);
+                    else showToast(`No.${p.id} ${p.name} 未解鎖！`);
+                };
+
+                card.innerHTML = `
+                    <span class="text-[8px] ${isOwned ? cfg.badgeClass : 'bg-slate-800 text-slate-500'} px-1 py-0.2 rounded absolute top-1 left-1">No.${p.id}</span>
+                    <div class="w-12 h-12 my-1 flex items-center justify-center ${isOwned ? '' : 'filter brightness-0 opacity-50'}">
+                        <img src="${p.image}" class="max-w-full max-h-full object-contain" data-try-count="0" onerror="handleImgError(this, ${p.id})">
+                    </div>
+                    <div class="text-[10px] font-bold ${isOwned ? 'text-white' : 'text-gray-500'} truncate w-full">${p.name}</div>
+                    <div class="text-[8px] text-gray-400 font-bold">${p.rarity}</div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openDetailModal(pId) {
+            currentInspectedId = pId;
+            const p = POKEMON_DB.find(item => item.id === pId);
+            const owned = gameState.collection[pId];
+            const cfg = RARITY_CONFIG[p.rarity] || RARITY_CONFIG["C"];
+
+            safeSetText('detailName', p.name);
+            const dImg = document.getElementById('detailImage');
+            if (dImg) {
+                dImg.dataset.tryCount = "0";
+                dImg.onerror = () => handleImgError(dImg, p.id);
+                dImg.src = p.image;
+            }
+
+            const rarityBadge = document.getElementById('detailRarity');
+            if (rarityBadge) {
+                rarityBadge.innerText = cfg.label;
+                rarityBadge.className = `text-xs px-2.5 py-0.5 rounded ${cfg.badgeClass}`;
+            }
+
+            safeSetText('detailDesc', p.desc);
+            safeSetText('detailLevel', `LV. ${owned ? owned.level : 1}`);
+
+            const cp = p.baseCp + ((owned ? owned.level : 1) - 1) * 150;
+            safeSetText('detailCP', `CP ${cp}`);
+
+            const modal = document.getElementById('detailModal');
+            if (modal) modal.classList.remove('hidden');
+        }
+
+        function upgradeCurrentPokemon() {
+            if (!currentInspectedId) return;
+            if (gameState.coins < 100) {
+                showToast("金幣不足，無法升級！");
+                return;
+            }
+            gameState.coins -= 100;
+            if (gameState.collection[currentInspectedId]) {
+                gameState.collection[currentInspectedId].level += 1;
+            }
+
+            updateUI();
+            openDetailModal(currentInspectedId);
+            showToast("寶可夢升級成功！");
+        }
+
+        function setAsPartner() {
+            if (!currentInspectedId) return;
+            gameState.selectedPokemonId = currentInspectedId;
+            updateUI();
+            closeModal('detailModal');
+            showToast("已更換首頁夥伴！");
+        }
+
+        function renderPartner() {
+            const display = document.getElementById('partnerDisplay');
+            if (!display) return;
+            const pId = gameState.selectedPokemonId;
+            const p = POKEMON_DB.find(item => item.id === pId);
+            const owned = gameState.collection[pId] || { level: 1 };
+
+            if (!p) return;
+            const cfg = RARITY_CONFIG[p.rarity] || RARITY_CONFIG["C"];
+            const cp = p.baseCp + (owned.level - 1) * 150;
+
+            display.innerHTML = `
+                <div class="relative flex flex-col items-center">
+                    <span class="text-[10px] ${cfg.badgeClass} px-2 py-0.5 rounded-full mb-1">${cfg.label}</span>
+                    <div class="w-24 h-24 my-1 flex items-center justify-center">
+                        <img src="${p.image}" class="max-w-full max-h-full object-contain drop-shadow-lg" data-try-count="0" onerror="handleImgError(this, ${p.id})">
+                    </div>
+                </div>
+                <div class="font-bold text-sm text-white">${p.name} <span class="text-xs text-emerald-400">LV.${owned.level}</span></div>
+                <div class="text-xs text-yellow-400 font-bold mt-0.5">CP ${cp} (${p.type}屬性)</div>
+            `;
+        }
+
+        function buyShopItem(type, gemCost, amount) {
+            if (gameState.gems < gemCost) {
+                showToast("鑽石不足！");
+                return;
+            }
+            gameState.gems -= gemCost;
+            if (type === 'coins') gameState.coins += amount;
+            if (type === 'gems') gameState.gems += amount;
+
+            updateUI();
+            showToast("購買成功！");
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            if (modal) modal.classList.add('hidden');
+        }
+
+        window.onload = function() {
+            // 進入遊戲時先讀取存檔
+            loadGame();
+            updateUI();
+        };
+    </script>
+</body>
+</html>
